@@ -1,0 +1,29 @@
+Legal and Compliance Reference Document – Contract Analysis
+
+This document summarizes important legal clauses from contractual agreements.
+It assists legal teams in auditing contracts efficiently.
+
+Contract Duration:
+The contract remains valid for a period of three years from the effective date.
+Renewal is subject to mutual agreement between both parties.
+
+Termination Clause:
+Either party may terminate the agreement with a 30-day written notice.
+Immediate termination may occur in cases of fraud, misconduct, or material breach.
+Termination does not release either party from obligations accrued prior to termination.
+
+Force Majeure Clause:
+Neither party shall be liable for failure to perform obligations due to force majeure events.
+Such events include natural disasters, pandemics, war, government actions, or labor strikes.
+If force majeure conditions persist beyond 60 days, either party may terminate the contract.
+
+Confidentiality Clause:
+All confidential information must be protected during and after the contract period.
+Information may not be disclosed without prior written consent.
+Breach of confidentiality may lead to legal penalties.
+
+Compliance Obligations:
+Both parties must comply with applicable laws and regulations.
+Regular audits may be conducted to ensure compliance.
+
+This document enables rapid retrieval of legal clauses without full contract review.

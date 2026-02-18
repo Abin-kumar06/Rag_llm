@@ -1,0 +1,33 @@
+Customer Support Ticket Resolution Knowledge Base
+
+This document contains summarized resolutions from previously closed customer support tickets.
+It helps support agents respond faster and more accurately to recurring issues.
+
+Login and Authentication Issues:
+Several customers reported inability to log into their accounts.
+Most cases were resolved by resetting passwords and clearing browser cache.
+In some cases, account lockout occurred due to multiple failed login attempts.
+Support agents verified user identity before reactivating accounts.
+
+Payment and Billing Issues:
+Customers reported payment failures during checkout.
+Issues were often caused by expired cards or bank transaction limits.
+Agents advised customers to retry payment using a different method.
+Refund-related queries were resolved within 5–7 business days.
+
+Account Suspension Cases:
+Temporary account suspension occurred due to policy violations.
+After reviewing user activity, some accounts were reinstated with warnings.
+Repeated violations resulted in permanent suspension.
+
+Feature Usage Queries:
+Customers frequently asked how to use newly released features.
+Agents guided users through step-by-step instructions.
+Reference links and screenshots were shared when necessary.
+
+Service Downtime Complaints:
+During maintenance windows, users experienced temporary outages.
+Agents informed users about scheduled maintenance timelines.
+Follow-up messages were sent after services were restored.
+
+This knowledge base improves response consistency and reduces handling time.
