@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Q&A Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .usecase-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .usecase-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .usecase-card.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .usecase-card h3 {
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .usecase-card p {
+            font-size: 0.85em;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        .usecase-card.active p {
+            opacity: 0.95;
+        }
+
+        .main {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .query-section {
+            margin-bottom: 30px;
+        }
+
+        .query-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .query-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .query-input-group textarea {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s;
+        }
+
+        .query-input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .query-input-group button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            align-self: flex-end;
+            min-width: 120px;
+        }
+
+        .query-input-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .query-input-group button:active {
+            transform: translateY(0);
+        }
+
+        .query-input-group button.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-section h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .context-box, .answer-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            flex: 1;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .context-box h3, .answer-box h3 {
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .score-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .score-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 5px 0 15px 0;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .context-chunk {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #c33;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #3c3;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                max-height: 200px;
+                overflow-x: auto;
+            }
+
+            .usecase-card {
+                display: inline-block;
+                vertical-align: top;
+                width: calc(50% - 8px);
+                margin-right: 15px;
+                margin-bottom: 10px;
+            }
+
+            .query-input-group {
+                flex-direction: column;
+            }
+
+            .query-input-group button {
+                align-self: stretch;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .usecase-card {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 RAG Q&A Assistant</h1>
+            <p>Intelligent document retrieval and question answering</p>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <div id="usecasesList"></div>
+            </div>
+
+            <div class="main">
+                <div class="query-section">
+                    <label for="questionInput">Ask a Question:</label>
+                    <div class="query-input-group">
+                        <textarea id="questionInput" placeholder="Type your question here..."></textarea>
+                        <button id="submitBtn" onclick="submitQuery()">Ask</button>
+                    </div>
+                </div>
+
+                <div class="results-section">
+                    <div id="results"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedUsecase = "usecase1";
+
+        // Initialize usecases list
+        async function initUsecases() {
+            try {
+                const response = await fetch("/api/usecases");
+                const usecases = await response.json();
+
+                const list = document.getElementById("usecasesList");
+                list.innerHTML = "";
+
+                Object.entries(usecases).forEach(([key, uc]) => {
+                    const card = document.createElement("div");
+                    card.className = `usecase-card ${key === selectedUsecase ? "active" : ""}`;
+                    card.innerHTML = `
+                        <h3>${uc.name}</h3>
+                        <p>${uc.description}</p>
+                    `;
+                    card.onclick = () => selectUsecase(key, card);
+                    list.appendChild(card);
+                });
+
+                showEmptyState();
+            } catch (error) {
+                console.error("Error loading usecases:", error);
+            }
+        }
+
+        function selectUsecase(key, element) {
+            selectedUsecase = key;
+            document.querySelectorAll(".usecase-card").forEach(el => el.classList.remove("active"));
+            element.classList.add("active");
+        }
+
+        function showEmptyState() {
+            document.getElementById("results").innerHTML = `
+                <div class="empty-state">
+                    <p>👋 Welcome! Select a usecase and ask a question to get started.</p>
+                </div>
+            `;
+        }
+
+        async function submitQuery() {
+            const question = document.getElementById("questionInput").value.trim();
+
+            if (!question) {
+                alert("Please enter a question.");
+                return;
+            }
+
+            const btn = document.getElementById("submitBtn");
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Loading...';
+
+            try {
+                const response = await fetch("/api/query", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ usecase: selectedUsecase, question })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || "An error occurred.");
+                }
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Ask";
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById("results");
+            
+            // Parse context to extract individual chunks with scores
+            const chunks = data.context.split(/\[Relevance: ([0-9.]+)%?\]/);
+            const contextHtml = [];
+            
+            for (let i = 0; i < chunks.length - 1; i += 2) {
+                const text = chunks[i].trim();
+                const scoreStr = chunks[i + 1];
+                
+                if (text.length === 0) continue;
+                
+                const scoreNum = parseFloat(scoreStr) / 100;
+                const percentage = (parseFloat(scoreStr)).toFixed(0);
+                
+                contextHtml.push(`
+                    <div class="context-chunk">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <span class="score-badge">Match: ${percentage}%</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${percentage}%"></div>
+                        </div>
+                        <p>${escapeHtml(text)}</p>
+                    </div>
+                `);
+            }
+
+            resultsDiv.innerHTML = `
+                <div class="results-section">
+                    <h2>Results</h2>
+                    ${data.context ? `
+                        <div class="context-box">
+                            <h3>Retrieved Context (Top Matches)</h3>
+                            ${contextHtml.join('')}
+                        </div>
+                    ` : ""}
+                    <div class="answer-box">
+                        <h3>Answer</h3>
+                        <p>${escapeHtml(data.answer)}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById("results").innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${escapeHtml(message)}
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Handle Enter key in textarea
+        document.addEventListener("DOMContentLoaded", () => {
+            initUsecases();
+            document.getElementById("questionInput").addEventListener("keypress", (e) => {
+                if (e.key === "Enter" && e.ctrlKey) {
+                    submitQuery();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
