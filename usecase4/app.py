@@ -1,49 +1,11 @@
-from dataclasses import dataclass
-from typing import List
-import numpy as np
-import ollama
+from rag_utils import load_and_chunk, SimpleTfidfRAG
+import os
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
-@dataclass
-class Document:
-    id: str
-    text: str
-    source: str = ""
+PROMPT_TEMPLATE = """
+You are a legal compliance assistant. Provide precise answers and, when possible, quote or reference the relevant clause from the context.
 
-def load_text_file(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    chunks = [c.strip() for c in content.split("\n\n") if len(c.strip()) > 20]
-
-    docs = []
-    for i, chunk in enumerate(chunks):
-        docs.append(Document(
-            id=f"text_chunk_{i}",
-            text=chunk,
-            source="Templesofondipudur.txt"
-        ))
-    return docs
-
-class SimpleTfidfRAG:
-    def __init__(self, docs: List[Document]):
-        self.docs = docs
-        self.vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1,2))
-        self.doc_matrix = self.vectorizer.fit_transform([d.text for d in docs])
-
-    def retrieve(self, query, top_k=3):
-        q_vec = self.vectorizer.transform([query])
-        sims = cosine_similarity(q_vec, self.doc_matrix).flatten()
-        idx = np.argsort(sims)[::-1][:top_k]
-        return [(self.docs[i], float(sims[i])) for i in idx if sims[i] > 0]
-
-def ask_phi3(context, question):
-    prompt = f"""
-You are a temple knowledge assistant.
-
-Answer ONLY using the context below.
+Use ONLY the context below. If the information is not present, say "I don't know" and recommend next steps (e.g., consult full contracts or legal counsel).
 
 Context:
 {context}
@@ -52,38 +14,58 @@ Question:
 {question}
 """
 
-    response = ollama.chat(
-        model="gemma3:1b",
-        messages=[{"role": "user", "content": prompt}]
-    )
 
-    return response["message"]["content"]
+def ask_model(context: str, question: str, model_name: str = "gemma3:1b") -> str:
+    try:
+        import ollama
+        prompt = PROMPT_TEMPLATE.format(context=context, question=question)
+        resp = ollama.chat(model=model_name, messages=[{"role": "user", "content": prompt}])
+        return resp["message"]["content"]
+    except Exception:
+        import re
+        q_words = re.findall(r"\w+", question.lower())
+        sentences = [s.strip() for s in re.split(r'(?<=[.?!])\s+', context) if s.strip()]
+        scored = []
+        for s in sentences:
+            score = sum(1 for w in q_words if w in s.lower())
+            scored.append((score, s))
+        scored.sort(reverse=True)
+        top = [s for sc, s in scored[:3] if sc > 0]
+        if top:
+            return "Fallback answer (no model): " + " \n".join(top)
+        return "Fallback answer (no model): I don't know. Consult the full contract or legal counsel."
+
 
 def main():
-    print("=== RAG + Phi3 Temple Search ===")
-
-    docs = load_text_file("legal_compliance_audit.txt")
+    base = os.path.dirname(__file__)
+    filepath = os.path.join(base, "legal_compliance_audit.txt")
+    docs = load_and_chunk(filepath, chunk_size=700, overlap=150)
     rag = SimpleTfidfRAG(docs)
 
+    print("=== Legal Compliance Assistant ===")
+    if not docs:
+        print("No documents found in", filepath)
+        return
+
     while True:
-        query = input("\nAsk Question (type exit to quit): ")
+        query = input("\nAsk Legal Question (type exit to quit): ")
         if query.lower() == "exit":
             break
 
-        results = rag.retrieve(query)
-
+        results = rag.retrieve(query, top_k=4)
         if not results:
             print("No matching context found.")
             continue
 
-        context = "\n\n".join([doc.text for doc, _ in results])
+        context = "\n\n".join([f"[source: {r[0].source}] {r[0].text}" for r in results])
 
-        print("\n--- Retrieved Context ---")
-        print(context[:500])
+        print("\n--- Retrieved Context (truncated) ---")
+        print(context[:900])
 
-        print("\n--- Phi3 Answer ---")
-        answer = ask_phi3(context, query)
+        print("\n--- Answer ---")
+        answer = ask_model(context, query, model_name="gemma3:1b")
         print(answer)
+
 
 if __name__ == "__main__":
     main()
